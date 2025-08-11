@@ -147,15 +147,3 @@ thead th{color:var(--muted); font-weight:600; text-transform:uppercase; font-siz
   z-index: 1;
 }
 
-@keyframes glowShift {
-  0%   { background-position: 0% 50%; }
-  100% { background-position: 100% 50%; }
-}
-.glow-text {
-  background: linear-gradient(90deg, #fff, #cfcfcf, #fff);
-  background-size: 200% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: glowShift 4s ease-in-out infinite;
-}
