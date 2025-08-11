@@ -49,7 +49,7 @@ function Hero() {
           {/* timezone row removed per request */}
           <div className="logo" style={{ marginBottom: 10 }}>MEDIA BIAS ANALYSIS</div>
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold glow-text">
-            Real-Time Intelligence with Highlighted Framing
+            Real-Time Intelligence for Media Bias
           </h1>
         </div>
       </section>
