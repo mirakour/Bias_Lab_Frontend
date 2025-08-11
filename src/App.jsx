@@ -271,27 +271,92 @@ function BiasScores({ scores, overall }) {
 /* ---------- Collapsible Claim item ---------- */
 function ClaimItem({ claim, syncOpen, syncKey }) {
   const [open, setOpen] = useState(!!syncOpen);
-  useEffect(() => { setOpen(!!syncOpen); }, [syncOpen, syncKey]);
+  useEffect(() => {
+    setOpen(!!syncOpen);
+  }, [syncOpen, syncKey]);
 
   const conf = Math.round((claim?.confidence ?? 0) * 100);
 
+  // Normalize possible source fields: primary_sources | sources | evidence
+  const rawSources =
+    claim?.primary_sources ?? claim?.sources ?? claim?.evidence ?? [];
+  const sources = (Array.isArray(rawSources) ? rawSources : [])
+    .map((s) => {
+      if (!s) return null;
+      if (typeof s === "string") return { url: s, title: "" };
+      return { url: s.url || s.link || "", title: s.title || "" };
+    })
+    .filter((s) => s && s.url);
+
   return (
     <Panel>
-      <button className="panel-head" onClick={() => setOpen((x) => !x)} aria-expanded={open} aria-controls={`claim-body-${syncKey}`} type="button">
-        <div className="small"><b className="code">Claim:</b> {claim.text}</div>
-        <span className={`chev-icon ${open ? "rot" : ""}`} aria-hidden>▸</span>
+      <button
+        className="panel-head"
+        onClick={() => setOpen((x) => !x)}
+        aria-expanded={open}
+        aria-controls={`claim-body-${syncKey}`}
+        type="button"
+      >
+        <div className="small">
+          <b className="code">Claim:</b> {claim.text}
+        </div>
+        <span className={`chev-icon ${open ? "rot" : ""}`} aria-hidden>
+          ▸
+        </span>
       </button>
       {open && (
         <div id={`claim-body-${syncKey}`} style={{ marginTop: 8 }}>
-          {claim.rationale && (<div className="small k" style={{ marginTop: 4 }}><b>Why:</b> {claim.rationale}</div>)}
-          <div className="small k" style={{ marginTop: 4 }}>Confidence: {conf}%</div>
-          {Array.isArray(claim.sources) && claim.sources.length > 0 && (
-            <div className="small" style={{ marginTop: 6 }}>
-              {claim.sources.slice(0, 2).map((s, j) => (
-                <div key={j} style={{ marginTop: 4 }}>
-                  <a className="small" href={s.url} target="_blank" rel="noreferrer">{s.title || s.url} ↗</a>
-                </div>
-              ))}
+          {claim.rationale && (
+            <div className="small k" style={{ marginTop: 4 }}>
+              <b>Why:</b> {claim.rationale}
+            </div>
+          )}
+          <div className="small k" style={{ marginTop: 4 }}>
+            Confidence: {conf}%
+          </div>
+
+          {/* Primary sources with favicons */}
+          {sources.length > 0 && (
+            <div className="mt-2" style={{ marginTop: 8 }}>
+              <div className="small k" style={{ marginBottom: 6 }}>
+                Primary sources:
+              </div>
+              <div className="flex flex-wrap gap-2" style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {sources.map((s, i) => {
+                  let host = "";
+                  try {
+                    host = new URL(s.url).hostname.replace(/^www\./, "");
+                  } catch {}
+                  return (
+                    <a
+                      key={i}
+                      href={s.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 rounded-md px-2 py-1"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        borderRadius: 8,
+                        padding: "4px 8px",
+                        background: "rgba(39,39,42,.6)",
+                        border: "1px solid var(--edge)",
+                      }}
+                    >
+                      <img
+                        src={`https://www.google.com/s2/favicons?domain=${host}&sz=16`}
+                        alt=""
+                        className="w-4 h-4 rounded-sm"
+                        style={{ width: 16, height: 16, borderRadius: 3 }}
+                      />
+                      <span className="small" style={{ color: "var(--accent-2)" }}>
+                        {s.title || host || "Source"}
+                      </span>
+                    </a>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
@@ -306,16 +371,23 @@ function ClaimsPanel({ claims }) {
   const [syncKey, setSyncKey] = useState(0);
   if (!Array.isArray(claims) || claims.length === 0) return null;
 
-  function toggleAll() { setAllOpen((v) => !v); setSyncKey((k) => k + 1); }
+  function toggleAll() {
+    setAllOpen((v) => !v);
+    setSyncKey((k) => k + 1);
+  }
 
   return (
     <section className="container card" style={{ marginTop: 16 }}>
       <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
         <h2>Claims & Primary Sources</h2>
-        <button className="btn alt" onClick={toggleAll}>{allOpen ? "Collapse all" : "Expand all"}</button>
+        <button className="btn alt" onClick={toggleAll}>
+          {allOpen ? "Collapse all" : "Expand all"}
+        </button>
       </div>
       <div className="row" style={{ flexDirection: "column", gap: 12, marginTop: 8 }}>
-        {claims.map((c, i) => (<ClaimItem key={i} claim={c} syncOpen={allOpen} syncKey={syncKey * 1000 + i} />))}
+        {claims.map((c, i) => (
+          <ClaimItem key={i} claim={c} syncOpen={allOpen} syncKey={syncKey * 1000 + i} />
+        ))}
       </div>
     </section>
   );
