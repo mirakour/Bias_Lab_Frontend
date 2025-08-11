@@ -31,12 +31,58 @@ function bandColor(v) {
   return "#e74c3c";
 }
 
+/* normalize primary-source items into {title, url} */
+function normalizeSources(claim) {
+  const raw =
+    claim?.primary_sources ??
+    claim?.sources ??
+    claim?.citations ??
+    [];
+  return (Array.isArray(raw) ? raw : [])
+    .map((s) => {
+      if (typeof s === "string") {
+        const url = s;
+        let title = "";
+        try {
+          title = new URL(url).hostname.replace(/^www\./, "");
+        } catch {
+          title = "Source";
+        }
+        return { title, url };
+      }
+      const url =
+        s?.url ||
+        s?.link ||
+        s?.href ||
+        s?.uri ||
+        s?.source_url ||
+        "";
+      let title =
+        s?.title ||
+        s?.site ||
+        s?.host ||
+        "";
+      if (!title && url) {
+        try {
+          title = new URL(url).hostname.replace(/^www\./, "");
+        } catch {}
+      }
+      return url ? { title: title || "Source", url } : null;
+    })
+    .filter(Boolean);
+}
+
 /* ------- basic layout bits ------- */
 function Header() {
   return (
     <header
       className="container"
-      style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 20 }}
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        paddingTop: 20,
+      }}
     >
       <div className="logo">BIAS&nbsp;LAB</div>
     </header>
@@ -51,7 +97,6 @@ function Hero() {
           <div className="logo" style={{ marginBottom: 10 }}>
             MEDIA BIAS ANALYSIS
           </div>
-          {/* keep headline simple & consistent */}
           <h1>Real-Time Intelligence with Highlighted Framing</h1>
         </div>
       </section>
@@ -84,7 +129,8 @@ function AnalyzePanel({ onAnalyzed, onBusyChange }) {
   }, [busy, onBusyChange]);
 
   const hasRequired = title.trim().length > 0 && outlet.trim().length > 0;
-  const hasContent = mode === "url" ? url.trim().length > 0 : text.trim().length > 0;
+  const hasContent =
+    mode === "url" ? url.trim().length > 0 : text.trim().length > 0;
 
   const canSubmit = useMemo(() => {
     if (busy) return false;
@@ -114,10 +160,16 @@ function AnalyzePanel({ onAnalyzed, onBusyChange }) {
         <h2>Analyze</h2>
 
         <div className="row" style={{ marginTop: 8 }}>
-          <button className={`btn ${mode === "url" ? "" : "alt"}`} onClick={() => setMode("url")}>
+          <button
+            className={`btn ${mode === "url" ? "" : "alt"}`}
+            onClick={() => setMode("url")}
+          >
             Via URL
           </button>
-          <button className={`btn ${mode === "text" ? "" : "alt"}`} onClick={() => setMode("text")}>
+          <button
+            className={`btn ${mode === "text" ? "" : "alt"}`}
+            onClick={() => setMode("text")}
+          >
             Paste Text
           </button>
         </div>
@@ -165,7 +217,13 @@ function AnalyzePanel({ onAnalyzed, onBusyChange }) {
 
         <label
           className="small"
-          style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 10, opacity: 0.9 }}
+          style={{
+            display: "flex",
+            gap: 8,
+            alignItems: "center",
+            marginTop: 10,
+            opacity: 0.9,
+          }}
         >
           <input
             type="checkbox"
@@ -175,7 +233,10 @@ function AnalyzePanel({ onAnalyzed, onBusyChange }) {
           Include primary sources (slower)
         </label>
 
-        <div className="row" style={{ marginTop: 12, alignItems: "center", gap: 10 }}>
+        <div
+          className="row"
+          style={{ marginTop: 12, alignItems: "center", gap: 10 }}
+        >
           <button className="btn" onClick={submit} disabled={!canSubmit}>
             {busy ? "Analyzing…" : "Run analysis"}
           </button>
@@ -212,8 +273,15 @@ function ScoringGuide({ onClose }) {
       }}
       onClick={onClose}
     >
-      <div className="card" style={{ maxWidth: 820, width: "100%" }} onClick={(e) => e.stopPropagation()}>
-        <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+      <div
+        className="card"
+        style={{ maxWidth: 820, width: "100%" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div
+          className="row"
+          style={{ justifyContent: "space-between", alignItems: "center" }}
+        >
           <h2>Scoring Guide</h2>
           <button className="btn" onClick={onClose}>
             Close
@@ -223,44 +291,50 @@ function ScoringGuide({ onClose }) {
         <div className="row" style={{ flexDirection: "column", gap: 10, marginTop: 10 }}>
           <Panel>
             <div className="small">
-              <b className="code">emotional_tone</b> — How emotionally loaded the language is (e.g., alarmist,
-              outrage, fear).
+              <b className="code">emotional_tone</b> — How emotionally loaded the
+              language is (e.g., alarmist, outrage, fear).
             </div>
           </Panel>
           <Panel>
             <div className="small">
-              <b className="code">framing_choices</b> — Presence of spin or loaded framing (e.g., “critics say”,
-              labeling, hedging).
+              <b className="code">framing_choices</b> — Presence of spin or
+              loaded framing (e.g., “critics say”, labeling, hedging).
             </div>
           </Panel>
           <Panel>
             <div className="small">
-              <b className="code">factual_grounding</b> — Concrete facts, attributions, and verifiable details.
+              <b className="code">factual_grounding</b> — Concrete facts,
+              attributions, and verifiable details.
             </div>
           </Panel>
           <Panel>
             <div className="small">
-              <b className="code">ideological_stance</b> — Clear ideological lean or one‑sided portrayal.
+              <b className="code">ideological_stance</b> — Clear ideological
+              lean or one‑sided portrayal.
             </div>
           </Panel>
           <Panel>
             <div className="small">
-              <b className="code">source_transparency</b> — Clarity of quotes/links/attribution; avoidance of
-              vague “sources”.
+              <b className="code">source_transparency</b> — Clarity of
+              quotes/links/attribution; avoidance of vague “sources”.
             </div>
           </Panel>
         </div>
 
         <div style={{ marginTop: 14 }}>
-          <h3 style={{ color: "var(--accent-2)", marginBottom: 6 }}>How the overall score is calculated</h3>
+          <h3 style={{ color: "var(--accent-2)", marginBottom: 6 }}>
+            How the overall score is calculated
+          </h3>
           <Panel>
             <div className="small" style={{ lineHeight: 1.6 }}>
-              Each dimension is scored 0–100. Higher means “more of that thing.” We convert them into an overall{" "}
-              <b>Bias Index</b> with these weights:
+              Each dimension is scored 0–100. Higher means “more of that thing.”
+              We convert them into an overall **Bias Index** with these weights:
               <br />
               <span className="code">25%</span> framing_choices,&nbsp;
-              <span className="code">25%</span> <i>inverse</i> of factual_grounding,&nbsp;
-              <span className="code">20%</span> <i>inverse</i> of source_transparency,&nbsp;
+              <span className="code">25%</span> <i>inverse</i> of
+              factual_grounding,&nbsp;
+              <span className="code">20%</span> <i>inverse</i> of
+              source_transparency,&nbsp;
               <span className="code">15%</span> emotional_tone,&nbsp;
               <span className="code">15%</span> ideological_stance.
               <br />
@@ -300,7 +374,10 @@ function BiasScores({ scores, overall }) {
 
   return (
     <section className="container card" style={{ marginTop: 16 }}>
-      <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+      <div
+        className="row"
+        style={{ justifyContent: "space-between", alignItems: "center" }}
+      >
         <h2>Bias Score</h2>
         <button className="btn alt" onClick={() => setShowGuide(true)}>
           Scoring Guide
@@ -317,9 +394,7 @@ function BiasScores({ scores, overall }) {
           const val = Number(v ?? 0);
           return (
             <div key={k} className="row" style={{ alignItems: "center", gap: 12 }}>
-              <span className="code" style={{ width: 180 }}>
-                {k}
-              </span>
+              <span className="code" style={{ width: 180 }}>{k}</span>
               <div
                 style={{
                   flex: 1,
@@ -361,17 +436,7 @@ function ClaimItem({ claim, syncOpen, syncKey }) {
   }, [syncOpen, syncKey]);
 
   const conf = Math.round((claim?.confidence ?? 0) * 100);
-
-  // Normalize possible source fields: primary_sources | sources | evidence
-  const rawSources =
-    claim?.primary_sources ?? claim?.sources ?? claim?.evidence ?? [];
-  const sources = (Array.isArray(rawSources) ? rawSources : [])
-    .map((s) => {
-      if (!s) return null;
-      if (typeof s === "string") return { url: s, title: "" };
-      return { url: s.url || s.link || "", title: s.title || "" };
-    })
-    .filter((s) => s && s.url);
+  const sources = normalizeSources(claim);
 
   return (
     <Panel>
@@ -400,48 +465,52 @@ function ClaimItem({ claim, syncOpen, syncKey }) {
             Confidence: {conf}%
           </div>
 
-          {/* Primary sources with favicons */}
-          {sources.length > 0 && (
-            <div className="mt-2" style={{ marginTop: 8 }}>
-              <div className="small k" style={{ marginBottom: 6 }}>
-                Primary sources:
-              </div>
-              <div className="flex flex-wrap gap-2" style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {sources.map((s, i) => {
-                  let host = "";
-                  try {
-                    host = new URL(s.url).hostname.replace(/^www\./, "");
-                  } catch {}
-                  return (
-                    <a
-                      key={i}
-                      href={s.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 rounded-md px-2 py-1"
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 6,
-                        borderRadius: 8,
-                        padding: "4px 8px",
-                        background: "rgba(39,39,42,.6)",
-                        border: "1px solid var(--edge)",
-                      }}
-                    >
+          {/* Primary sources */}
+          {!!sources.length && (
+            <div
+              className="small"
+              style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}
+            >
+              {sources.map((s, j) => {
+                let host = "";
+                try {
+                  host = new URL(s.url).hostname.replace(/^www\./, "");
+                } catch {}
+                return (
+                  <a
+                    key={j}
+                    href={s.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    title={s.title || s.url}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "4px 8px",
+                      borderRadius: 8,
+                      background: "rgba(39,39,42,.6)",
+                      border: "1px solid var(--edge)",
+                      textDecoration: "underline",
+                      textDecorationStyle: "dotted",
+                      color: "var(--accent)",
+                    }}
+                  >
+                    {/* quick favicon for visual ID */}
+                    {host && (
                       <img
                         src={`https://www.google.com/s2/favicons?domain=${host}&sz=16`}
                         alt=""
-                        className="w-4 h-4 rounded-sm"
-                        style={{ width: 16, height: 16, borderRadius: 3 }}
+                        width={16}
+                        height={16}
+                        style={{ borderRadius: 3 }}
                       />
-                      <span className="small" style={{ color: "var(--accent-2)" }}>
-                        {s.title || host || "Source"}
-                      </span>
-                    </a>
-                  );
-                })}
-              </div>
+                    )}
+                    <span>{s.title || host || "Source"}</span>
+                    <span aria-hidden>↗</span>
+                  </a>
+                );
+              })}
             </div>
           )}
         </div>
@@ -463,7 +532,10 @@ function ClaimsPanel({ claims }) {
 
   return (
     <section className="container card" style={{ marginTop: 16 }}>
-      <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+      <div
+        className="row"
+        style={{ justifyContent: "space-between", alignItems: "center" }}
+      >
         <h2>Claims & Primary Sources</h2>
         <button className="btn alt" onClick={toggleAll}>
           {allOpen ? "Collapse all" : "Expand all"}
@@ -471,7 +543,12 @@ function ClaimsPanel({ claims }) {
       </div>
       <div className="row" style={{ flexDirection: "column", gap: 12, marginTop: 8 }}>
         {claims.map((c, i) => (
-          <ClaimItem key={i} claim={c} syncOpen={allOpen} syncKey={syncKey * 1000 + i} />
+          <ClaimItem
+            key={i}
+            claim={c}
+            syncOpen={allOpen}
+            syncKey={syncKey * 1000 + i}
+          />
         ))}
       </div>
     </section>
@@ -485,12 +562,16 @@ function HighlightItem({ h, syncOpen, syncKey }) {
     setOpen(!!syncOpen);
   }, [syncOpen, syncKey]);
 
-  const txt = h?.data?.text || h?.text || "";
-  const start = Number(h?.data?.start || h?.start || 0);
-  const end = Number(h?.data?.end || h?.end || 0);
-  const reason =
-    h?.data?.reason || h?.data?.why || h?.reason || h?.why || ""; // <— grab real reason when present
+  const txt = h?.data?.text || "";
+  const start = Number(h?.data?.start || 0);
+  const end = Number(h?.data?.end || 0);
   const showRange = start > 0 && end > start && end - start < 2000;
+
+  // hide boilerplate fallback reasons
+  const reason = h?.data?.reason;
+  const isFallbackReason = /representative sentence extracted as fallback/i.test(
+    String(reason || "")
+  );
 
   return (
     <Panel>
@@ -516,14 +597,14 @@ function HighlightItem({ h, syncOpen, syncKey }) {
       {open && (
         <div id={`hl-body-${syncKey}`} className="small" style={{ marginTop: 6 }}>
           <div>{txt}</div>
-          {!!reason && (
+          {!isFallbackReason && reason && (
             <div className="small k" style={{ marginTop: 6 }}>
               Why: {reason}
             </div>
           )}
-          {"confidence" in (h.data || h || {}) && (
+          {"confidence" in (h.data || {}) && (
             <div className="small k" style={{ marginTop: 4 }}>
-              Confidence: {Math.round((h?.data?.confidence ?? h?.confidence ?? 0) * 100)}%
+              Confidence: {Math.round((h.data.confidence ?? 0) * 100)}%
             </div>
           )}
         </div>
@@ -535,7 +616,9 @@ function HighlightItem({ h, syncOpen, syncKey }) {
 /* ---------- Highlights panel ---------- */
 function HighlightsPanel({ highlights }) {
   const clean = (highlights || []).filter(
-    (h) => (h?.data?.text || h?.text || "").trim().length > 1 && !/return only json/i.test(h?.data?.text || h?.text || "")
+    (h) =>
+      (h?.data?.text || "").trim().length > 1 &&
+      !/return only json/i.test(h?.data?.text || "")
   );
   const [allOpen, setAllOpen] = useState(false);
   const [syncKey, setSyncKey] = useState(0);
@@ -546,7 +629,10 @@ function HighlightsPanel({ highlights }) {
 
   return (
     <section className="container card" style={{ marginTop: 16 }}>
-      <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+      <div
+        className="row"
+        style={{ justifyContent: "space-between", alignItems: "center" }}
+      >
         <h2>Highlights</h2>
         {!!clean.length && (
           <button className="btn alt" onClick={toggleAll}>
@@ -564,7 +650,12 @@ function HighlightsPanel({ highlights }) {
       ) : (
         <div className="row" style={{ flexDirection: "column", gap: 10 }}>
           {clean.map((h, i) => (
-            <HighlightItem key={h.id ?? i} h={h} syncOpen={allOpen} syncKey={syncKey * 1000 + i} />
+            <HighlightItem
+              key={h.id ?? i}
+              h={h}
+              syncOpen={allOpen}
+              syncKey={syncKey * 1000 + i}
+            />
           ))}
         </div>
       )}
@@ -585,14 +676,19 @@ function NarrativesPanel({ articleId }) {
 
       try {
         if (articleId) {
-          await fetch(`${import.meta.env.VITE_API_BASE}/narratives/cluster`, { method: "POST" });
+          await fetch(`${import.meta.env.VITE_API_BASE}/narratives/cluster`, {
+            method: "POST",
+          });
         }
       } catch {
         /* non-fatal */
       }
 
       try {
-        const [nv, arts] = await Promise.all([listNarratives(order), listArticles(100)]);
+        const [nv, arts] = await Promise.all([
+          listNarratives(order),
+          listArticles(100),
+        ]);
         setRows(Array.isArray(nv) ? nv : []);
         const amap = {};
         (Array.isArray(arts) ? arts : []).forEach((a) => {
@@ -611,9 +707,17 @@ function NarrativesPanel({ articleId }) {
   if (!articleId) {
     return (
       <section className="container card" style={{ marginTop: 16 }}>
-        <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+        <div
+          className="row"
+          style={{ justifyContent: "space-between", alignItems: "center" }}
+        >
           <h2>Narratives</h2>
-          <select className="input" value={order} onChange={(e) => setOrder(e.target.value)} style={{ width: 160 }}>
+          <select
+            className="input"
+            value={order}
+            onChange={(e) => setOrder(e.target.value)}
+            style={{ width: 160 }}
+          >
             <option value="desc">New → Old</option>
             <option value="asc">Old → New</option>
           </select>
@@ -626,14 +730,24 @@ function NarrativesPanel({ articleId }) {
   }
 
   const filtered = (rows || []).filter(
-    (n) => Array.isArray(n?.data?.article_ids) && n.data.article_ids.includes(articleId)
+    (n) =>
+      Array.isArray(n?.data?.article_ids) &&
+      n.data.article_ids.includes(articleId)
   );
 
   return (
     <section className="container card" style={{ marginTop: 16 }}>
-      <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+      <div
+        className="row"
+        style={{ justifyContent: "space-between", alignItems: "center" }}
+      >
         <h2>Narratives</h2>
-        <select className="input" value={order} onChange={(e) => setOrder(e.target.value)} style={{ width: 160 }}>
+        <select
+          className="input"
+          value={order}
+          onChange={(e) => setOrder(e.target.value)}
+          style={{ width: 160 }}
+        >
           <option value="desc">New → Old</option>
           <option value="asc">Old → New</option>
         </select>
@@ -650,7 +764,9 @@ function NarrativesPanel({ articleId }) {
       ) : (
         <div className="row" style={{ flexDirection: "column", gap: 10, marginTop: 8 }}>
           {filtered.map((n) => {
-            const ids = Array.isArray(n?.data?.article_ids) ? n.data.article_ids : [];
+            const ids = Array.isArray(n?.data?.article_ids)
+              ? n.data.article_ids
+              : [];
             const linked = ids.map((id) => articleMap[id]).filter(Boolean);
             return (
               <Panel key={n.id}>
@@ -660,7 +776,11 @@ function NarrativesPanel({ articleId }) {
                 <div style={{ marginTop: 6 }}>
                   <b>{n.label}</b>
                 </div>
-                {n.data?.summary && <div className="small k" style={{ marginTop: 6 }}>{n.data.summary}</div>}
+                {n.data?.summary && (
+                  <div className="small k" style={{ marginTop: 6 }}>
+                    {n.data.summary}
+                  </div>
+                )}
                 {linked.length > 0 && (
                   <div className="row" style={{ flexDirection: "column", gap: 6, marginTop: 8 }}>
                     {linked.map((a) => (
@@ -733,16 +853,23 @@ function ArticlesPanel({ refreshKey }) {
               <tr key={r.id}>
                 <td className="code">{r.id}</td>
                 <td>{r.title}</td>
-                <td className="small">{r.outlet || <span className="k">—</span>}</td>
+                <td className="small">
+                  {r.outlet || <span className="k">—</span>}
+                </td>
                 <td className="small code">
-                  emo:{r.scores?.emotional_tone ?? 0} • frame:{r.scores?.framing_choices ?? 0} • fact:
+                  emo:{r.scores?.emotional_tone ?? 0} • frame:
+                  {r.scores?.framing_choices ?? 0} • fact:
                   {r.scores?.factual_grounding ?? 0}
                 </td>
                 <td className="row" style={{ gap: 8 }}>
                   <button className="btn alt" onClick={() => setOpen(r)}>
                     View
                   </button>
-                  <button className="btn danger" disabled={busyId === r.id} onClick={() => handleDelete(r.id)}>
+                  <button
+                    className="btn danger"
+                    disabled={busyId === r.id}
+                    onClick={() => handleDelete(r.id)}
+                  >
                     {busyId === r.id ? "…" : "Delete"}
                   </button>
                 </td>
@@ -781,7 +908,9 @@ function ArticleModal({ article, onClose }) {
         setFresh(detail);
         setHighlights(hl);
         const mine = (Array.isArray(nv) ? nv : []).filter(
-          (n) => Array.isArray(n?.data?.article_ids) && n.data.article_ids.includes(article.id)
+          (n) =>
+            Array.isArray(n?.data?.article_ids) &&
+            n.data.article_ids.includes(article.id)
         );
         setNarrs(mine);
       } catch {
@@ -792,7 +921,9 @@ function ArticleModal({ article, onClose }) {
 
   const a = fresh || article;
   const showHighlights = (highlights || []).filter(
-    (h) => (h?.data?.text || h?.text || "").trim().length > 1 && !/return only json/i.test(h?.data?.text || h?.text || "")
+    (h) =>
+      (h?.data?.text || "").trim().length > 1 &&
+      !/return only json/i.test(h?.data?.text || "")
   );
 
   return (
@@ -811,14 +942,27 @@ function ArticleModal({ article, onClose }) {
     >
       <div
         className="card"
-        style={{ maxWidth: 900, width: "100%", maxHeight: "90vh", overflowY: "auto" }}
+        style={{
+          maxWidth: 900,
+          width: "100%",
+          maxHeight: "90vh",
+          overflowY: "auto",
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-sticky">
-          <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+          <div
+            className="row"
+            style={{ justifyContent: "space-between", alignItems: "center" }}
+          >
             <h2>Article {a.id}</h2>
             <div className="row" style={{ gap: 8 }}>
-              <a className="btn alt" href={exportCsvUrl(a.id)} target="_blank" rel="noreferrer">
+              <a
+                className="btn alt"
+                href={exportCsvUrl(a.id)}
+                target="_blank"
+                rel="noreferrer"
+              >
                 Export CSV
               </a>
               <button className="btn" onClick={onClose}>
@@ -852,9 +996,7 @@ function ArticleModal({ article, onClose }) {
               const val = Number(v ?? 0);
               return (
                 <div key={k} className="row" style={{ alignItems: "center", gap: 12 }}>
-                  <span className="code" style={{ width: 180 }}>
-                    {k}
-                  </span>
+                  <span className="code" style={{ width: 180 }}>{k}</span>
                   <div
                     style={{
                       flex: 1,
@@ -894,7 +1036,9 @@ function ArticleModal({ article, onClose }) {
           ) : (
             <div className="row" style={{ flexDirection: "column", gap: 10 }}>
               {narrs.map((n) => {
-                const ids = Array.isArray(n?.data?.article_ids) ? n.data.article_ids : [];
+                const ids = Array.isArray(n?.data?.article_ids)
+                  ? n.data.article_ids
+                  : [];
                 return (
                   <Panel key={n.id}>
                     <div className="small" style={{ opacity: 0.8 }}>
@@ -934,28 +1078,37 @@ function ArticleModal({ article, onClose }) {
           ) : (
             <div className="row" style={{ flexDirection: "column", gap: 10 }}>
               {showHighlights.map((h, i) => {
-                const start = Number(h.data?.start || h.start || 0);
-                const end = Number(h.data?.end || h.end || 0);
+                const start = Number(h.data?.start || 0);
+                const end = Number(h.data?.end || 0);
                 const showRange = start > 0 && end > start && end - start < 2000;
-                const reason =
-                  h?.data?.reason || h?.data?.why || h?.reason || h?.why || "";
+                const reason = h?.data?.reason;
+                const isFallbackReason = /representative sentence extracted as fallback/i.test(
+                  String(reason || "")
+                );
                 return (
                   <Panel key={h.id ?? i}>
-                    <div className="row" style={{ width: "100%", justifyContent: "space-between" }}>
+                    <div
+                      className="row"
+                      style={{ width: "100%", justifyContent: "space-between" }}
+                    >
                       <span className="small code">{h.dimension}</span>
-                      {showRange && <span className="small k">({start}–{end})</span>}
+                      {showRange && (
+                        <span className="small k">
+                          ({start}–{end})
+                        </span>
+                      )}
                     </div>
                     <div className="small" style={{ marginTop: 6 }}>
-                      {h.data?.text || h.text || ""}
+                      {h.data?.text}
                     </div>
-                    {!!reason && (
+                    {!isFallbackReason && reason && (
                       <div className="small k" style={{ marginTop: 6 }}>
                         Why: {reason}
                       </div>
                     )}
-                    {"confidence" in (h.data || h || {}) && (
+                    {"confidence" in (h.data || {}) && (
                       <div className="small k" style={{ marginTop: 4 }}>
-                        Confidence: {Math.round((h.data?.confidence ?? h.confidence ?? 0) * 100)}%
+                        Confidence: {Math.round((h.data.confidence ?? 0) * 100)}%
                       </div>
                     )}
                   </Panel>
@@ -994,7 +1147,10 @@ export default function App() {
     <>
       <Header />
       <Hero />
-      <AnalyzePanel onAnalyzed={setLastAnalyzed} onBusyChange={(b) => setIsBusy(b)} />
+      <AnalyzePanel
+        onAnalyzed={setLastAnalyzed}
+        onBusyChange={(b) => setIsBusy(b)}
+      />
       <SummaryPanel text={!isBusy ? lastAnalyzed?.summary : null} />
       <BiasScores
         scores={!isBusy ? lastAnalyzed?.scores : null}
@@ -1004,7 +1160,10 @@ export default function App() {
       <NarrativesPanel articleId={lastAnalyzed?.id} />
       <HighlightsPanel highlights={!isBusy ? pageHighlights : []} />
       <ArticlesPanel refreshKey={lastAnalyzed?.id} />
-      <footer className="container small" style={{ opacity: 0.6, paddingBottom: 40, marginTop: 16 }}>
+      <footer
+        className="container small"
+        style={{ opacity: 0.6, paddingBottom: 40, marginTop: 16 }}
+      >
         © {new Date().getFullYear()} Bias Lab • built for demo
       </footer>
     </>
