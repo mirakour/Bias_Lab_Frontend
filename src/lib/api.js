@@ -1,4 +1,5 @@
-const BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000";
+const API_BASE =
+  import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000"; // fallback for local dev
 
 async function _json(url, opts = {}) {
   const res = await fetch(url, {
@@ -60,3 +61,6 @@ export async function listNarratives(order = "desc") {
   // If the backend route isn't there yet, this will 404; callers guard it.
   return _json(`${BASE}/narratives?order=${encodeURIComponent(order)}`);
 }
+
+export const apiGet = (path: string, init?: RequestInit) =>
+  fetch(`${API_BASE}${path}`, { ...init, mode: "cors" });
