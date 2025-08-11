@@ -97,7 +97,7 @@ function Hero() {
           <div className="logo" style={{ marginBottom: 10 }}>
             MEDIA BIAS ANALYSIS
           </div>
-          <h1>Real-Time Intelligence with Highlighted Framing</h1>
+          <h1>Real-Time Intelligence for Media Bias</h1>
         </div>
       </section>
     </div>
