@@ -1,14 +1,16 @@
-const API_BASE =
-  import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000"; // fallback for local dev
+const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000";
 
-async function _json(url, opts = {}) {
-  const res = await fetch(url, {
+// Small helper that always hits the API base and returns JSON (or throws)
+async function _json(path, opts = {}) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    mode: "cors",
     ...opts,
     headers: {
       "Content-Type": "application/json",
       ...(opts.headers || {}),
     },
   });
+
   if (!res.ok) {
     let msg = `${res.status} ${res.statusText}`;
     try {
@@ -23,15 +25,15 @@ async function _json(url, opts = {}) {
 }
 
 export async function listArticles(limit = 50) {
-  return _json(`${BASE}/articles?limit=${encodeURIComponent(limit)}`);
+  return _json(`/articles?limit=${encodeURIComponent(limit)}`);
 }
 
 export async function getArticle(id) {
-  return _json(`${BASE}/articles/${id}`);
+  return _json(`/articles/${id}`);
 }
 
 export async function deleteArticle(id) {
-  const res = await fetch(`${BASE}/articles/${id}`, { method: "DELETE" });
+  const res = await fetch(`${API_BASE}/articles/${id}`, { method: "DELETE", mode: "cors" });
   if (!res.ok && res.status !== 204) {
     throw new Error(`${res.status} ${res.statusText}`);
   }
@@ -39,28 +41,22 @@ export async function deleteArticle(id) {
 
 export async function listHighlights(articleId, limit = 50) {
   return _json(
-    `${BASE}/highlights?article_id=${encodeURIComponent(
-      articleId
-    )}&limit=${encodeURIComponent(limit)}`
+    `/highlights?article_id=${encodeURIComponent(articleId)}&limit=${encodeURIComponent(limit)}`
   );
 }
 
 export async function analyzeArticle(payload, { full = false } = {}) {
-  return _json(`${BASE}/analyze?full=${full ? "true" : "false"}`, {
+  return _json(`/analyze?full=${full ? "true" : "false"}`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
 }
 
-// export
 export function exportCsvUrl(articleId) {
-  return `${BASE}/articles/${articleId}/export.csv`;
+  return `${API_BASE}/articles/${articleId}/export.csv`;
 }
 
-export async function listNarratives(order = "desc") {
-  // If the backend route isn't there yet, this will 404; callers guard it.
-  return _json(`${BASE}/narratives?order=${encodeURIComponent(order)}`);
+// Optional generic GET if you need it elsewhere
+export function apiGet(path, init = {}) {
+  return fetch(`${API_BASE}${path}`, { ...init, mode: "cors" });
 }
-
-export const apiGet = (path: string, init?: RequestInit) =>
-  fetch(`${API_BASE}${path}`, { ...init, mode: "cors" });
